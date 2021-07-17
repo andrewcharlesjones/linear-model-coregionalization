@@ -15,7 +15,7 @@ font = {"size": 20}
 matplotlib.rc("font", **font)
 matplotlib.rcParams["text.usetex"] = True
 
-SAVE_DIR = "/Users/andrewjones/Documents/princeton_webpage/andrewcharlesjones.github.io/assets"
+SAVE_DIR = "/path/to/save/dir"
 
 
 class LMC:
@@ -42,13 +42,13 @@ class LMC:
         self.n_noise_variance_params = n_noise_variance_params
 
         self.N = X.shape[0]
-        self.n_genes = Y.shape[1]
+        self.n_features = Y.shape[1]
 
     def unpack_params(self, params, n_kernel_params):
         noise_variance = np.exp(params[0]) + 0.001
         kernel_params = params[1 : n_kernel_params + 1]
         W = np.reshape(
-            params[n_kernel_params + 1:], (self.n_latent_dims, self.n_genes)
+            params[n_kernel_params + 1:], (self.n_latent_dims, self.n_features)
         )
         return W, noise_variance, kernel_params
 
@@ -59,8 +59,8 @@ class LMC:
 
         # Compute log likelihood
         cov_xx = self.kernel(X, X, kernel_params) + noise_variance * np.eye(self.N)
-        cov = np.kron(cov_xx, W.T @ W) + 0.01 * np.eye(self.N * self.n_genes)
-        LL = mvn.logpdf(self.Y.flatten(), np.zeros(self.N * self.n_genes), cov)
+        cov = np.kron(cov_xx, W.T @ W) + 0.01 * np.eye(self.N * self.n_features)
+        LL = mvn.logpdf(self.Y.flatten(), np.zeros(self.N * self.n_features), cov)
 
         return -LL
 
@@ -74,7 +74,7 @@ class LMC:
                 np.random.normal(size=self.n_noise_variance_params),  # Noise variance
                 np.random.normal(size=self.n_kernel_params),  # GP params
                 np.random.normal(
-                    scale=1, size=self.n_latent_dims * self.n_genes
+                    scale=1, size=self.n_latent_dims * self.n_features
                 ),  # W (loadings)
             ]
         )
@@ -94,7 +94,7 @@ class LMC:
 
 if __name__ == "__main__":
 
-    n_genes = 2
+    n_features = 2
     n_latent_dims = 1
     kernel = rbf_covariance
     kernel_params_true = np.array([1, 1.])
@@ -110,7 +110,7 @@ if __name__ == "__main__":
             for _ in range(n_latent_dims)
         ]
     ).T
-    Y_full = F_orig @ W_orig + np.random.normal(scale=np.sqrt(sigma2), size=(n + ntest, n_genes))
+    Y_full = F_orig @ W_orig + np.random.normal(scale=np.sqrt(sigma2), size=(n + ntest, n_features))
 
     X = X_full[:n]
     Y = Y_full[:n]
@@ -138,17 +138,17 @@ if __name__ == "__main__":
 
     # Y_flattened
     mean_pred = Kxxnew.T @ Kxx_inv @ np.ndarray.flatten(Y, "C")
-    mean_pred = np.reshape(mean_pred, (nnew, n_genes))
+    mean_pred = np.reshape(mean_pred, (nnew, n_features))
 
 
     Xaugmented = np.concatenate([X, Xtest], axis=0)
     Kxx_augmented = rbf_covariance(Xaugmented, Xaugmented, kernel_params)
 
     Kxx_augmented_full = np.kron(WWT, Kxx_augmented)
-    Kxx = Kxx_augmented_full[:n*n_genes + ntest, :n*n_genes + ntest] + 0.01 * np.eye(n * n_genes + ntest)
+    Kxx = Kxx_augmented_full[:n*n_features + ntest, :n*n_features + ntest] + 0.01 * np.eye(n * n_features + ntest)
     
-    Kxxtest = Kxx_augmented_full[:n*n_genes + ntest, n*n_genes + ntest:]
-    Kxx_inv = np.linalg.solve(Kxx, np.eye(n*n_genes + ntest))
+    Kxxtest = Kxx_augmented_full[:n*n_features + ntest, n*n_features + ntest:]
+    Kxx_inv = np.linalg.solve(Kxx, np.eye(n*n_features + ntest))
         
     Y_for_preds = np.concatenate([Y[:, 0], Ytest[:, 0], Y[:, 1]])
     preds = Kxxtest.T @ Kxx_inv @ Y_for_preds
