@@ -48,7 +48,7 @@ class LMC:
         noise_variance = np.exp(params[0]) + 0.001
         kernel_params = params[1 : n_kernel_params + 1]
         W = np.reshape(
-            params[n_kernel_params + 1:], (self.n_latent_dims, self.n_features)
+            params[n_kernel_params + 1 :], (self.n_latent_dims, self.n_features)
         )
         return W, noise_variance, kernel_params
 
@@ -66,7 +66,6 @@ class LMC:
 
     def summary(self, pars):
         print("LL {0:1.3e}".format(-self.gp_likelihood(pars)))
-
 
     def fit(self, plot_updates=False):
         param_init = np.concatenate(
@@ -97,20 +96,26 @@ if __name__ == "__main__":
     n_features = 2
     n_latent_dims = 1
     kernel = rbf_covariance
-    kernel_params_true = np.array([1, 1.])
+    kernel_params_true = np.array([1, 1.0])
     n = 50
     ntest = 50
-    sigma2 = .1
+    sigma2 = 0.1
     n_spatial_dims = 1
-    X_full = np.vstack([np.linspace(-7, 7, n + ntest, 1) for _ in range(n_spatial_dims)]).T
-    W_orig =np.array([[-2., 2.]])
+    X_full = np.vstack(
+        [np.linspace(-7, 7, n + ntest, 1) for _ in range(n_spatial_dims)]
+    ).T
+    W_orig = np.array([[-2.0, 2.0]])
     F_orig = np.vstack(
         [
-            mvnpy.rvs(mean=np.zeros(n + ntest), cov=kernel(X_full, X_full, kernel_params_true))
+            mvnpy.rvs(
+                mean=np.zeros(n + ntest), cov=kernel(X_full, X_full, kernel_params_true)
+            )
             for _ in range(n_latent_dims)
         ]
     ).T
-    Y_full = F_orig @ W_orig + np.random.normal(scale=np.sqrt(sigma2), size=(n + ntest, n_features))
+    Y_full = F_orig @ W_orig + np.random.normal(
+        scale=np.sqrt(sigma2), size=(n + ntest, n_features)
+    )
 
     X = X_full[:n]
     Y = Y_full[:n]
@@ -118,7 +123,11 @@ if __name__ == "__main__":
     Ytest = Y_full[n:]
 
     warp_gp = LMC(
-        X, Y, kernel=rbf_covariance, n_latent_dims=n_latent_dims, n_spatial_dims=n_spatial_dims
+        X,
+        Y,
+        kernel=rbf_covariance,
+        n_latent_dims=n_latent_dims,
+        n_spatial_dims=n_spatial_dims,
     )
     W_fitted, noise_variance, kernel_params = warp_gp.fit(plot_updates=False)
 
@@ -140,19 +149,19 @@ if __name__ == "__main__":
     mean_pred = Kxxnew.T @ Kxx_inv @ np.ndarray.flatten(Y, "C")
     mean_pred = np.reshape(mean_pred, (nnew, n_features))
 
-
     Xaugmented = np.concatenate([X, Xtest], axis=0)
     Kxx_augmented = rbf_covariance(Xaugmented, Xaugmented, kernel_params)
 
     Kxx_augmented_full = np.kron(WWT, Kxx_augmented)
-    Kxx = Kxx_augmented_full[:n*n_features + ntest, :n*n_features + ntest] + 0.01 * np.eye(n * n_features + ntest)
-    
-    Kxxtest = Kxx_augmented_full[:n*n_features + ntest, n*n_features + ntest:]
-    Kxx_inv = np.linalg.solve(Kxx, np.eye(n*n_features + ntest))
-        
+    Kxx = Kxx_augmented_full[
+        : n * n_features + ntest, : n * n_features + ntest
+    ] + 0.01 * np.eye(n * n_features + ntest)
+
+    Kxxtest = Kxx_augmented_full[: n * n_features + ntest, n * n_features + ntest :]
+    Kxx_inv = np.linalg.solve(Kxx, np.eye(n * n_features + ntest))
+
     Y_for_preds = np.concatenate([Y[:, 0], Ytest[:, 0], Y[:, 1]])
     preds = Kxxtest.T @ Kxx_inv @ Y_for_preds
-    
 
     ## Get normal GP predictions for the features independently
     Kxx = rbf_covariance(X, X, kernel_params)
@@ -162,17 +171,21 @@ if __name__ == "__main__":
     mean_pred_gp_y1 = Kxxnew.T @ Kxx_inv @ Y[:, 0]
     mean_pred_gp_y2 = Kxxnew.T @ Kxx_inv @ Y[:, 1]
 
-
     plt.figure(figsize=(10, 4))
 
     plt.scatter(X[:, 0], Y[:, 0], color="red", alpha=0.5, label="Y1")
     plt.scatter(X[:, 0], Y[:, 1], color="green", alpha=0.5, label="Y2")
-    plt.plot(xnew, mean_pred_gp_y2, color="gray", linestyle='--', label="GP predictions", linewidth=5)
-
+    plt.plot(
+        xnew,
+        mean_pred_gp_y2,
+        color="gray",
+        linestyle="--",
+        label="GP predictions",
+        linewidth=5,
+    )
 
     plt.plot(Xtest, preds, label="LMC predictions", color="black", linewidth=5)
     plt.scatter(Xtest, Ytest[:, 0], color="red", alpha=0.5)
-    
 
     plt.xlabel(r"$X$")
     plt.ylabel(r"$Y$")
@@ -181,8 +194,6 @@ if __name__ == "__main__":
     plt.savefig(pjoin(SAVE_DIR, "lmc_2d_preds.png"))
     # plt.show()
     plt.close()
-
-
 
     plt.figure(figsize=(10, 4))
 
@@ -201,8 +212,6 @@ if __name__ == "__main__":
     # plt.show()
     plt.close()
 
-
-
     plt.figure(figsize=(10, 4))
 
     plt.scatter(X[:, 0], Y[:, 0], color="red", alpha=0.5, label="Y1")
@@ -219,8 +228,6 @@ if __name__ == "__main__":
     # plt.show()
     plt.close()
 
-
-
     plt.figure(figsize=(10, 4))
 
     plt.scatter(X[:, 0], Y[:, 0], color="red", alpha=0.5, label="Y1")
@@ -228,7 +235,14 @@ if __name__ == "__main__":
 
     plt.scatter(Xtest, Ytest[:, 0], color="red", alpha=0.5)
 
-    plt.plot(xnew, mean_pred_gp_y2, color="gray", linestyle='--', label="GP predictions", linewidth=5)
+    plt.plot(
+        xnew,
+        mean_pred_gp_y2,
+        color="gray",
+        linestyle="--",
+        label="GP predictions",
+        linewidth=5,
+    )
 
     plt.xlabel(r"$X$")
     plt.ylabel(r"$Y$")
@@ -239,4 +253,6 @@ if __name__ == "__main__":
     # plt.show()
     plt.close()
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
